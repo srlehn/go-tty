@@ -2,7 +2,11 @@
 
 package tty
 
+import (
+	"syscall"
+)
+
 const (
-	ioctlReadTermios  = 0x5401 // syscall.TCGETS
-	ioctlWriteTermios = 0x5402 // syscall.TCSETS
+	ioctlReadTermios  = syscall.TCGETS   // 0x5401
+	ioctlWriteTermios = syscall.TCSETS   // 0x5402
 )
