@@ -3,6 +3,7 @@
 package tty
 
 import (
+	"context"
 	"os"
 	"errors"
 	"syscall"
@@ -123,12 +124,13 @@ type charInfo struct {
 }
 
 type TTY struct {
-	in     *os.File
-	out    *os.File
-	st     uint32
-	rs     []rune
-	ws     chan WINSIZE
-	closeC chan interface{}
+	in                *os.File
+	out               *os.File
+	st                uint32
+	rs                []rune
+	ws                chan WINSIZE
+	sigwinchCtx       context.Context
+	sigwinchCtxCancel context.CancelFunc
 }
 
 func readConsoleInput(fd uintptr, record *inputRecord) (err error) {
@@ -185,7 +187,7 @@ func open() (*TTY, error) {
 	procSetConsoleMode.Call(h, uintptr(st))
 
 	tty.ws = make(chan WINSIZE)
-	tty.closeC = make(chan interface{})
+	tty.sigwinchCtx, tty.sigwinchCtxCancel = context.WithCancel(context.Background())
 
 	return tty, nil
 }
@@ -213,13 +215,17 @@ func (tty *TTY) readRune() (rune, error) {
 			W: int(wr.size.x),
 			H: int(wr.size.y),
 		}
-		select {
-		case <-tty.closeC: // closing
-			return 0, nil
-		default:
+
+		if err := tty.sigwinchCtx.Err(); err != nil {
+			// closing
+			// the following select might panic without this guard close
+			return 0, err
 		}
+
 		select {
 		case tty.ws <- ws:
+		case <-tty.sigwinchCtx.Done():
+			return 0, tty.sigwinchCtx.Err()
 		default:
 			return 0, nil // no one is currently trying to read
 		}
@@ -321,7 +327,7 @@ func (tty *TTY) readRune() (rune, error) {
 
 func (tty *TTY) close() error {
 	procSetConsoleMode.Call(tty.in.Fd(), uintptr(tty.st))
-	close(tty.closeC)
+	tty.sigwinchCtxCancel()
 	close(tty.ws)
 	return nil
 }
