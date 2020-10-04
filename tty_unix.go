@@ -21,17 +21,17 @@ type TTY struct {
 	ss      chan os.Signal
 }
 
-func open(path string) (*TTY, error) {
+func open() (*TTY, error) {
 	tty := new(TTY)
 
-	in, err := os.Open(path)
+	in, err := os.Open("/dev/tty")
 	if err != nil {
 		return nil, err
 	}
 	tty.in = in
 	tty.bin = bufio.NewReader(in)
 
-	out, err := os.OpenFile(path, syscall.O_WRONLY, 0)
+	out, err := os.OpenFile("/dev/tty", syscall.O_WRONLY, 0)
 	if err != nil {
 		return nil, err
 	}
