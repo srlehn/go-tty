@@ -142,7 +142,7 @@ func readConsoleInput(fd uintptr, record *inputRecord) (err error) {
 	return nil
 }
 
-func open(path string) (*TTY, error) {
+func open() (*TTY, error) {
 	tty := new(TTY)
 	if false && isatty.IsTerminal(os.Stdin.Fd()) {
 		tty.in = os.Stdin
