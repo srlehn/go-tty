@@ -7,6 +7,6 @@ import (
 )
 
 const (
-	ioctlReadTermios  = unix.TCGETA
-	ioctlWriteTermios = unix.TCSETA
+	ioctlReadTermios  = unix.TCGETS
+	ioctlWriteTermios = unix.TCSETS
 )
